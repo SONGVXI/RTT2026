@@ -1,0 +1,234 @@
+<!doctype html>
+<html lang="zh-CN">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>ST 环境监测 · 串口控制台</title>
+<style>
+:root{color-scheme:dark;--bg:#09121d;--card:#111e2c;--line:#26384a;--text:#e8f0f6;--muted:#95aabd;--cyan:#ff6b6b;--amber:#69a9ff;--red:#ff8383}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 90% 0,#133344 0,transparent 45%),var(--bg);color:var(--text);font:14px/1.6 "Segoe UI","Microsoft YaHei",sans-serif}main{max-width:1360px;margin:auto;padding:32px}header{display:flex;justify-content:space-between;gap:20px;align-items:center;margin-bottom:24px}h1{font-size:27px;margin:4px 0;font-weight:650;letter-spacing:.5px}h2{font-size:17px;margin:0 0 16px}.eyebrow{color:var(--cyan);font:12px Consolas,monospace;letter-spacing:2px}.sub,.muted{color:var(--muted)}.sub{margin:0}button,input,select{font:inherit;border-radius:8px;border:1px solid var(--line);padding:9px 13px;background:#132536;color:var(--text)}button{cursor:pointer;transition:.15s}button:hover:enabled{border-color:var(--cyan);background:#1b3a47}button:disabled{opacity:.4;cursor:not-allowed}button.primary{background:var(--cyan);color:#07231f;border-color:var(--cyan);font-weight:650}button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--cyan);outline-offset:3px}input{min-width:0;width:100%}input[type=checkbox]{width:auto;accent-color:var(--cyan)}.panel{background:linear-gradient(130deg,#142332,#101c29);border:1px solid var(--line);border-radius:14px;padding:22px}.connection,.row{display:flex;align-items:center;gap:12px;flex-wrap:wrap}.connection{margin-bottom:18px}.connection .grow{flex:1}.pill{display:inline-flex;align-items:center;gap:8px;padding:6px 12px;border-radius:99px;background:#1c2d3d;color:var(--muted);font-size:13px}.pill:before{content:"";width:7px;height:7px;background:currentColor;border-radius:50%}.pill.on{color:var(--cyan);background:#153e3b}.pill.warn{color:var(--amber);background:#3b3020}.notice{padding:12px 16px;border-left:3px solid var(--cyan);background:#122a37;margin-bottom:20px;color:#bbd8e8;white-space:pre-wrap}.notice.error{border-color:var(--red);color:#ffd0d0}.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:18px}.metric .label{color:var(--muted)}.value{font:42px/1.3 "Segoe UI",sans-serif;margin:15px 0 8px;font-variant-numeric:tabular-nums}.unit{font-size:18px;color:var(--muted);margin-left:6px}.foot{font-size:12px;color:var(--muted)}.led{display:inline-block;width:14px;height:14px;background:#50606f;border-radius:50%;margin-right:10px}.led.on{background:var(--cyan);box-shadow:0 0 20px #ff6b6b80}.columns{display:grid;grid-template-columns:1.2fr 1fr;gap:18px;margin-bottom:18px}.heading{display:flex;justify-content:space-between;align-items:center;gap:12px}canvas{display:block;width:100%;height:225px;margin-top:12px}.legend{display:flex;gap:20px;font-size:12px}.legend span:before{content:"";display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--c);margin-right:6px}.formgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}label.field{display:block;color:var(--muted);font-size:12px}label.field input{margin-top:6px;font-size:16px;color:var(--text)}.confirmed{font-family:Consolas,monospace;color:var(--cyan);background:#0a1722;border-radius:8px;padding:10px 12px;margin:16px 0}.small{font-size:12px}.logbar{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px}.log{background:#070f18;border:1px solid var(--line);border-radius:9px;height:255px;overflow:auto;padding:10px 14px;font:12px/1.8 Consolas,"Microsoft YaHei",monospace;white-space:pre-wrap;overflow-wrap:anywhere}.logline{display:grid;grid-template-columns:90px 36px 1fr;gap:8px}.logline time{color:#627e95}.logline .TX{color:var(--cyan)}.logline .RX{color:#89bfff}.logline .SYS{color:var(--amber)}.command{display:flex;gap:10px;margin-top:14px}.command input{flex:1;font-family:Consolas,monospace}.bottom{margin:16px 0;color:var(--muted);font-size:12px}.top-actions{display:flex;gap:10px}.status-detail{min-height:23px;font-size:12px;color:var(--muted);margin-top:10px}details{font-size:12px;color:var(--muted);margin-top:18px}summary{cursor:pointer}#alarmText{font-size:32px}#demoBanner{color:var(--amber)}@media(max-width:980px){.metrics{grid-template-columns:repeat(2,1fr)}.columns{grid-template-columns:1fr}header{align-items:flex-start}}@media(max-width:580px){main{padding:16px}header{flex-direction:column}.metrics{gap:10px}.panel{padding:16px}.value{font-size:32px}.formgrid{grid-template-columns:1fr}.logline{grid-template-columns:68px 28px 1fr}h1{font-size:23px}.connection .grow{flex-basis:100%}}
+
+/* Compact waveform workstation, inspired by VOFA+ panel organization. */
+:root{--bg:#202124;--card:#292b2e;--line:#414348;--text:#e3e5e8;--muted:#a3a7af;--cyan:#65b9ff;--amber:#f2c66d;color-scheme:dark}
+body{background:var(--bg);font-size:13px}
+main{max-width:none;padding:12px;display:grid;grid-template-columns:260px minmax(0,1fr);grid-template-areas:"head head" "connection notice" "connection metrics" "threshold wave" "threshold logs" "footer footer";gap:10px;align-items:start}
+header{grid-area:head;margin:0;background:#303236;border:1px solid var(--line);padding:12px 16px;flex-wrap:wrap;gap:10px}
+h1{font-size:20px;margin:0}.eyebrow{display:none}.sub{font-size:12px}.top-actions{margin-left:auto;align-items:center}
+.panel{background:#292b2e;border:1px solid var(--line);border-radius:3px;padding:14px;min-width:0}h2{font-size:14px;font-weight:600;margin-bottom:12px}
+button,input,select{border-radius:3px;background:#32353a;border-color:#4a4e55;padding:6px 10px;font-size:12px}
+button:hover:enabled{background:#3e4652;border-color:#80bfff}button.primary{background:#326b9c;color:white;border-color:#4a89bb}
+.pill{border-radius:3px;padding:3px 8px;font-size:11px;background:#3b3e43}.pill.on{color:#8ed3ff;background:#24465c}
+.connection{grid-area:connection;margin:0;display:grid;grid-template-columns:1fr 1fr;gap:10px;align-content:start;align-self:stretch}
+.connection:before{content:"设备 / SERIAL";grid-column:1/-1;font-weight:600;border-bottom:1px solid var(--line);padding-bottom:10px}
+.connection>label,.connection>select{grid-column:1/-1}.connection .muted{grid-column:1/-1}.connection .grow{display:none}
+.notice{grid-area:notice;margin:0;border:1px solid var(--line);border-left:3px solid #65b9ff;border-radius:3px;background:#292b2e;font-size:12px;padding:8px 12px}
+#demoBanner{font-size:12px;flex-basis:100%}.metrics{grid-area:metrics;gap:8px;margin:0;grid-template-columns:repeat(4,minmax(0,1fr))}
+.metric{padding:10px 12px;border-top:2px solid #50545c}.metric:nth-child(1){border-top-color:#ff6b6b}.metric:nth-child(2){border-top-color:#ffd166}.metric:nth-child(3){border-top-color:#69a9ff}
+.metric .label{font-size:10px}.value{font:28px/1.2 Consolas,monospace;margin:8px 0}.unit{font-size:13px}.foot{font-size:11px}#alarmText{font-size:25px}.led{width:10px;height:10px}
+.columns{display:contents}.wave-panel{grid-area:wave}.threshold-panel{grid-area:threshold;align-self:stretch}.log-panel{grid-area:logs}
+.formgrid{grid-template-columns:1fr;gap:10px}label.field input{font-size:14px;margin-top:4px}
+.confirmed{font-size:11px;line-height:1.8;background:#202225;padding:8px;margin:12px 0}.threshold-panel .heading{align-items:start;flex-wrap:wrap}
+.threshold-panel .row{gap:8px}.status-detail{font-size:11px;margin-top:8px}.threshold-panel details{margin-top:16px;line-height:1.8}
+.wave-panel .heading{border-bottom:1px solid var(--line);padding-bottom:9px;margin-bottom:10px}.wave-panel h2{margin:0}
+.wave-toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;font-size:11px;margin-bottom:10px}.wave-toolbar label{display:flex;gap:6px;align-items:center}
+.legend{font-size:12px;gap:16px}.legend label{display:flex;gap:6px;align-items:center;color:var(--c)}.legend input{accent-color:var(--c)}
+canvas{height:340px;margin-top:8px;background:#222427;border:1px solid #383c42;cursor:crosshair}
+#cursorInfo{font:11px/1.7 Consolas,"Microsoft YaHei",monospace;color:#b4c7d7;min-height:20px}
+.logbar{gap:8px;margin-bottom:8px}.logbar .row{gap:7px}.log{height:180px;border-radius:2px;background:#222427;padding:6px 10px}
+.command{margin-top:8px}.bottom{grid-area:footer;margin:0;font-size:11px}
+@media(min-width:1700px){canvas{height:440px}.log{height:220px}}
+@media(max-width:1050px){main{grid-template-columns:225px minmax(0,1fr)}.metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.connection{align-content:start}.value{font-size:25px}}
+@media(max-width:700px){main{padding:8px;grid-template-columns:minmax(0,1fr);grid-template-areas:"head" "connection" "notice" "metrics" "wave" "threshold" "logs" "footer"}.connection{grid-template-columns:1fr 1fr}.connection>label,.connection>select{grid-column:auto}.connection .muted{grid-column:1/-1}.top-actions{margin-left:0}canvas{height:280px}.formgrid{grid-template-columns:repeat(3,minmax(0,1fr))}.legend{gap:10px}.logline{grid-template-columns:68px 26px 1fr}}
+
+
+.chart-wrap{position:relative;margin-top:8px;min-width:0}.chart-wrap canvas{margin-top:0;touch-action:pan-y}
+.chart-tooltip{position:absolute;z-index:5;pointer-events:none;width:228px;max-width:calc(100% - 12px);padding:10px 12px;border:1px solid #697586;border-radius:4px;background:rgba(20,24,30,.96);box-shadow:0 5px 18px #0008;font:12px/1.9 Consolas,"Microsoft YaHei",monospace}
+.chart-tooltip[hidden]{display:none}.chart-tooltip strong{display:block;font-size:11px;color:#e0e5eb;border-bottom:1px solid #46505d;margin-bottom:5px}
+#tipT{color:#ff6b6b}#tipH{color:#ffd166}#tipR{color:#69a9ff}
+.legend{flex-wrap:wrap}
+
+
+.alarm-items{margin-top:8px;border-top:1px solid #414348;padding-top:5px;display:grid;gap:4px}
+.alarm-item{display:grid;grid-template-columns:48px minmax(0,1fr) 30px;align-items:center;gap:4px;font:10px/1.6 Consolas,"Microsoft YaHei",monospace}
+.alarm-item>span:nth-child(2){text-align:right;white-space:nowrap}.alarm-t{color:#ff6b6b}.alarm-h{color:#ffd166}.alarm-r{color:#69a9ff}
+.alarm-flag{text-align:center;border-radius:2px;padding:1px 2px}.alarm-flag.exceeded{background:#713737;color:#ffd4d4;font-weight:700}.alarm-flag.normal{background:#35433b;color:#b7d7c4}.alarm-flag.unknown{background:#3b3e43;color:#b1b6c0}
+.alarm-basis{font-size:10px;color:#a3a7af;line-height:1.5;margin-top:5px}.alarm-items.stale{opacity:.6}
+
+</style></head>
+<body><main>
+<header><div><div class="eyebrow">MC × ST / ENVIRONMENT MONITOR</div><h1>环境监测 · 串口控制台</h1><p class="sub">读取 ST 的 CAN 解析结果，调整环境报警阈值</p></div><div class="top-actions"><button id="demo">体验演示</button><span class="pill" id="connectionState">未连接</span></div></header>
+<section class="panel connection" aria-label="串口连接"><label for="baud">波特率</label><select id="baud"><option>115200</option><option>57600</option><option>38400</option><option>19200</option><option>9600</option></select><span class="muted small">8 数据位 · 无校验 · 1 停止位</span><div class="grow"></div><button id="connect" class="primary">连接串口</button><button id="disconnect" disabled>断开</button></section>
+<div id="notice" class="notice" role="status" aria-live="polite">选择 ST-LINK Virtual COM Port。连接前，请关闭占用该串口的其他串口软件。</div>
+<div id="demoBanner" hidden>● 演示模式：以下数值为模拟数据，没有打开或写入真实串口。</div>
+<section class="metrics" aria-label="实时环境数据">
+<div class="panel metric"><div class="label">温度 / TEMPERATURE</div><div class="value"><span id="temp">—</span><span class="unit">℃</span></div><div class="foot" id="tempLimit">阈值未读取</div></div>
+<div class="panel metric"><div class="label">相对湿度 / HUMIDITY</div><div class="value"><span id="humidity">—</span><span class="unit">%RH</span></div><div class="foot" id="humidityLimit">阈值未读取</div></div>
+<div class="panel metric"><div class="label">光敏 ADC / LIGHT RAW</div><div class="value"><span id="raw">—</span></div><div class="foot" id="rawLimit">0–65535 · 原始 ADC 值，非 lux</div></div>
+<div class="panel metric"><div class="label">ST 报警灯 / LED</div><div class="value" id="alarmText"><span id="led" class="led"></span><span id="alarm">未知</span></div><div class="foot" id="over">等待 ST 数据</div><div id="alarmItems" class="alarm-items"><div class="alarm-item alarm-t"><span>温度</span><span id="alarmT">—</span><span id="flagT" class="alarm-flag unknown">待数据</span></div><div class="alarm-item alarm-h"><span>湿度</span><span id="alarmH">—</span><span id="flagH" class="alarm-flag unknown">待数据</span></div><div class="alarm-item alarm-r"><span>光敏 raw</span><span id="alarmR">—</span><span id="flagR" class="alarm-flag unknown">待数据</span></div></div><div id="alarmBasis" class="alarm-basis">等待 ST 环境数据</div></div>
+</section>
+<div class="columns"><section class="panel wave-panel"><div class="heading"><h2>实时趋势</h2><span class="pill" id="fresh">等待数据</span></div><div class="wave-toolbar">
+<label>X 轴 <select id="xAxis" aria-label="横坐标模式"><option value="clock">接收时刻</option><option value="elapsed">经过时间 / s</option><option value="index">样本序号</option></select></label>
+<label>Y 轴 <select id="yAxis" aria-label="纵坐标范围"><option value="fixed">固定独立量程</option><option value="auto">自动范围</option></select></label>
+<label>窗口 <select id="plotCount" aria-label="波形窗口样本数"><option>120</option><option>300</option><option>600</option></select></label>
+<button id="freezePlot" type="button">暂停波形</button></div>
+<div class="legend"><label style="--c:#ff6b6b"><input id="channelT" type="checkbox" checked>CH1 温度 ℃</label><label style="--c:#ffd166"><input id="channelH" type="checkbox" checked>CH2 湿度 %RH</label><label style="--c:#69a9ff"><input id="channelR" type="checkbox" checked>CH3 raw 原始值</label></div><div class="chart-wrap"><canvas id="chart" aria-label="传感器波形，横轴可选接收时刻、经过秒数或样本序号；温湿度共用左纵轴，原始raw使用右纵轴" role="img"></canvas><div id="chartTooltip" class="chart-tooltip" hidden role="status"><strong id="tipTime"></strong><div id="tipT"></div><div id="tipH"></div><div id="tipR"></div></div></div><div id="cursorInfo" aria-live="off"></div><div class="status-detail" id="sampleInfo">等待 ENV 数据帧 · 最近 120 个样本</div></section>
+<section class="panel threshold-panel"><div class="heading"><h2>报警阈值</h2><span class="muted small">ST RAM 参数</span></div>
+<form id="thresholdForm"><div class="formgrid"><label class="field">温度（0–50 ℃）<input id="limitT" type="number" min="0" max="50" step="1" value="25" required></label><label class="field">湿度（0–100 %RH）<input id="limitH" type="number" min="0" max="100" step="1" value="60" required></label><label class="field">光敏 raw（0–65535）<input id="limitR" type="number" min="0" max="65535" step="1" value="30000" required></label></div>
+<div class="confirmed" id="confirmed">ST 已生效值：尚未查询</div><div class="row"><button type="submit" class="primary" id="apply" disabled>发送阈值</button><button type="button" id="get" disabled>读取当前阈值</button></div></form><div class="status-detail" id="pending" role="status" aria-live="polite">输入框是待发送值，须收到 ST 回复才确认生效。</div><details><summary>判断规则与接线</summary><p>温度、湿度和 raw 分别严格大于对应阈值，至少两项超标时 ST LED 点亮。等于阈值不算超标。阈值仅保存在 RAM，ST 复位后恢复固件默认值。</p><p>ST USART2：PA2 为 TX，PA3 为 RX，115200 / 8N1。若使用外接 USB 转串口，交叉连接 TX/RX 并共地，使用 3.3V 电平。板载 ST-LINK 虚拟串口能否直通 USART2，以开发板实际连接为准。</p><p>此窗口显示 ST 灯状态；MC 的灯还取决于 MC 自身的独立判断。</p></details></section></div>
+<section class="panel log-panel"><div class="logbar"><h2 style="margin:0">串口日志</h2><div class="row"><select id="filter" aria-label="日志筛选"><option value="ALL">全部日志</option><option value="RX">仅接收 RX</option><option value="TX">仅发送 TX</option><option value="SYS">仅系统 SYS</option></select><label class="small"><input type="checkbox" id="autoscroll" checked> 自动滚动</label><button id="pause">暂停显示</button><button id="clear">清空</button><button id="export">导出日志</button></div></div><div class="log" id="log" aria-label="串口收发日志" tabindex="0"></div><form id="commandForm" class="command"><input id="command" aria-label="手动串口命令" placeholder="GET 或 SET 25 60 30000 或 HELP" maxlength="120" autocomplete="off"><button type="submit" id="send" disabled>发送 CRLF</button><button type="button" id="help" disabled>HELP</button></form></section>
+<p class="bottom">本地直连 · 无云端转发 · 日志仅保留在当前页面内存中，最多 1500 条。刷新页面会清空。建议使用桌面 Chrome / Edge，通过本机 localhost 打开。</p>
+</main>
+<script>
+"use strict";
+const $=id=>document.getElementById(id);
+const state={port:null,reader:null,readTask:null,opening:false,closing:false,connected:false,demo:false,demoTimer:null,logs:[],history:[],lastSample:0,paused:false,pending:null,limits:null,queue:Promise.resolve(),writeError:null,received:0};
+function notice(message,error=false){$("notice").textContent=message;$("notice").classList.toggle("error",error)}
+function log(kind,text){state.logs.push({time:new Date().toLocaleTimeString("zh-CN",{hour12:false}),kind,text});if(state.logs.length>1500)state.logs.shift();if(!state.paused)renderLog()}
+function renderLog(){const frag=document.createDocumentFragment(),filter=$("filter").value;for(const entry of state.logs){if(filter!=="ALL"&&entry.kind!==filter)continue;const line=document.createElement("div");line.className="logline";const time=document.createElement("time"),kind=document.createElement("span"),body=document.createElement("span");time.textContent=entry.time;kind.textContent=entry.kind;kind.className=entry.kind;body.textContent=entry.text;line.append(time,kind,body);frag.append(line)}$("log").replaceChildren(frag);if($("autoscroll").checked)$("log").scrollTop=$("log").scrollHeight}
+function controls(){const real=state.connected&&!state.closing;const ready=real||state.demo;for(const id of ["send","help","get","apply"])$(id).disabled=!ready||!!state.pending;$("connect").disabled=state.opening||state.connected||state.closing||state.demo||!navigator.serial||!window.isSecureContext;$("disconnect").disabled=!state.connected||state.closing;$("baud").disabled=state.connected||state.opening;$("demo").disabled=state.connected||state.opening||state.closing;$("demo").textContent=state.demo?"退出演示":"体验演示";$("connectionState").textContent=state.demo?"演示模式":state.closing?"正在断开":state.opening?"正在连接":state.connected?"串口已连接":"未连接";$("connectionState").className="pill"+(state.demo?" warn":state.connected?" on":"");$("demoBanner").hidden=!state.demo}
+function resetData(){resetPlot();state.history=[];state.lastSample=0;state.limits=null;state.received=0;clearPending("输入框是待发送值，须收到 ST 回复才确认生效。");for(const id of ["temp","humidity","raw"])$(id).textContent="—";$("alarm").textContent="未知";$("led").className="led";$("over").textContent="等待 ST 数据";$("confirmed").textContent="ST 已生效值：尚未查询";$("tempLimit").textContent="阈值未读取";$("humidityLimit").textContent="阈值未读取";$("rawLimit").textContent="0–65535 · 原始 ADC 值，非 lux";$("sampleInfo").textContent="等待 ENV 数据帧 · 最近 120 个样本";$("fresh").textContent="等待数据";$("fresh").className="pill";drawChart();renderAlarmDetails()}
+function clearPending(message){if(state.pending)clearTimeout(state.pending.timer);state.pending=null;if(message)$("pending").textContent=message;controls()}
+function alarmChecks(sample,limits){
+ return [["t","温度","℃"],["h","湿度","%RH"],["r","光敏 raw",""]].map(([key,label,unit],i)=>({
+  key,label,unit,value:sample?sample[key]:null,limit:limits?limits[i]:null,
+  exceeded:sample&&limits?sample[key]>limits[i]:null
+ }));
+}
+function renderAlarmDetails(){
+ const sample=state.history.length?state.history[state.history.length-1]:null;
+ const stale=!!sample&&(!state.lastSample||(!state.connected&&!state.demo)||Date.now()-sample.time>=5000);
+ for(const check of alarmChecks(sample,state.limits)){
+  const field=$("alarm"+check.key.toUpperCase()),flag=$("flag"+check.key.toUpperCase());
+  const value=check.value===null?"—":check.key==="r"?String(check.value):check.value.toFixed(1);
+  field.textContent=check.exceeded===null?value+(check.unit?" "+check.unit:""):value+(check.exceeded?" > ":" ≤ ")+check.limit+(check.unit?" "+check.unit:"");
+  flag.textContent=check.value===null?"待数据":check.exceeded===null?"待阈值":check.exceeded?"超标":"正常";
+  flag.className="alarm-flag "+(check.exceeded===null?"unknown":check.exceeded?"exceeded":"normal");
+ }
+ $("alarmItems").classList.toggle("stale",stale);
+ $("alarmBasis").textContent=!sample?"等待 ST 环境数据":!state.limits?"请先读取 ST 阈值，才能判断各项":stale?"最近样本已过期；各项判断仅供历史查看":"按 ST 已确认阈值严格比较（>）";
+}
+
+function showLED(on,over){$("alarm").textContent=on?"点亮":"熄灭";$("led").className="led"+(on?" on":"");$("over").textContent=over===null?"ST 报告 CAN 数据超时":over+" / 3 项超过阈值"}
+function parseLine(line){let match=line.match(/^ENV,seq=(\d+),T=(\d+(?:\.\d+)?)C,H=(\d+(?:\.\d+)?)%,raw=(\d+),over=([0-3]),LED=(ON|OFF)$/);if(match){const sample={seq:Number(match[1]),t:Number(match[2]),h:Number(match[3]),r:Number(match[4]),over:Number(match[5]),on:match[6]==="ON",time:Date.now()};if(sample.t>100||sample.h>100||sample.r>65535)return;sample.index=++state.received;plot.origin??=sample.time;state.lastSample=sample.time;state.history.push(sample);if(state.history.length>600)state.history.shift();$("temp").textContent=sample.t.toFixed(1);$("humidity").textContent=sample.h.toFixed(1);$("raw").textContent=sample.r;showLED(sample.on,sample.over);$("sampleInfo").textContent="序号 "+sample.seq+" · 本次接收 "+state.received+" 个样本 · "+new Date(sample.time).toLocaleTimeString();freshness();drawChart();return}
+match=line.match(/^(OK,)?LIMIT,T=(\d+),H=(\d+),RAW=(\d+)/);if(match){const limits=[+match[2],+match[3],+match[4]];if(limits[0]>50||limits[1]>100||limits[2]>65535)return;state.limits=limits;$("confirmed").textContent=(state.demo?"演示已生效值：":"ST 已生效值：")+limits[0]+" ℃ / "+limits[1]+" %RH / "+limits[2];$("tempLimit").textContent="报警阈值 > "+limits[0]+" ℃";$("humidityLimit").textContent="报警阈值 > "+limits[1]+" %RH";$("rawLimit").textContent="报警阈值 > "+limits[2]+" · 非 lux";const p=state.pending;if(p&&((p.kind==="SET"&&match[1])||p.kind==="GET")){const matches=p.kind!=="SET"||p.values.every((v,i)=>v===limits[i]);clearPending(matches?"已收到 ST 确认。参数仅在本次上电期间有效。":"ST 回复与发送值不一致，请重新读取确认。")}else if(!p)$("pending").textContent="已读取设备阈值；输入框保留待发送值。";renderAlarmDetails();return}
+if(line.startsWith("WARN,no-valid-CAN-sample-for-5s")){showLED(false,null);state.lastSample=0;freshness();notice("ST 已超过 5 秒没有收到有效 CAN 数据，已将 ST LED 关闭。请检查 MC 和 CAN 连接。",true)}
+if(line.startsWith("ERR,")){if(state.pending)clearPending("ST 返回错误："+line);notice(line,true)}
+if(line.startsWith("ST READY:")){state.limits=null;$("confirmed").textContent="ST 已复位：请重新读取阈值";clearPending("检测到 ST 启动信息，请读取当前阈值。");state.lastSample=0;showLED(false,null);freshness()}
+}
+function createLineDecoder(onLine){let pending="",skipLF=false;return {push(text){for(const char of text){if(char==="\n"&&skipLF){skipLF=false;continue}skipLF=false;if(char==="\r"||char==="\n"){if(pending)onLine(pending);pending="";skipLF=char==="\r"}else{pending+=char;if(pending.length>4096){onLine("[过长数据已截断] "+pending);pending=""}}}},finish(){if(pending)onLine(pending);pending=""}}}
+async function readLoop(port){const decoder=new TextDecoder(),lines=createLineDecoder(line=>{log("RX",line);parseLine(line)});try{while(port.readable&&!state.closing){const reader=port.readable.getReader();state.reader=reader;try{while(!state.closing){const result=await reader.read();if(result.done)break;lines.push(decoder.decode(result.value,{stream:true}))}}catch(error){if(!state.closing){log("SYS","接收错误："+error.message);notice("串口接收错误："+error.message,true)}}finally{reader.releaseLock();if(state.reader===reader)state.reader=null}}}finally{lines.push(decoder.decode());lines.finish();if(state.connected&&!state.closing)void disconnect("串口读取已结束，连接已关闭。")}}
+async function connect(){if(state.opening||state.connected||state.demo)return;state.opening=true;controls();let port=null;try{port=await navigator.serial.requestPort();await port.open({baudRate:Number($("baud").value),dataBits:8,stopBits:1,parity:"none",flowControl:"none"});state.port=port;state.connected=true;state.opening=false;state.queue=Promise.resolve();resetData();controls();log("SYS","串口已打开："+$("baud").value+" / 8N1");notice("已连接。正在查询 ST 阈值；如无回复，请检查串口、波特率和固件。");state.readTask=readLoop(port);await sendCommand("GET")}catch(error){state.opening=false;if(!state.connected&&port){try{await port.close()}catch{}}if(error.name!=="NotFoundError"){notice("连接失败："+error.message+"。检查串口是否被其他软件占用。",true);log("SYS","连接失败："+error.message)}else notice("已取消选择串口。");controls()}}
+async function disconnect(message="串口已断开。"){if(state.closing||!state.port)return;state.closing=true;controls();const port=state.port;try{if(state.reader)await state.reader.cancel();await state.readTask;await state.queue.catch(()=>{});await port.close()}catch(error){log("SYS","关闭连接："+error.message)}finally{state.port=null;state.reader=null;state.readTask=null;state.connected=false;state.closing=false;clearPending("连接已断开；如有未确认的修改，请重连后读取阈值。");freshness();controls();notice(message);log("SYS",message)}}
+function commandInfo(text){const cmd=text.trim().toUpperCase();if(cmd==="GET"||cmd==="HELP")return {cmd,kind:cmd};const m=cmd.match(/^SET\s+(\d+)\s+(\d+)\s+(\d+)$/);if(m){const values=m.slice(1).map(Number);if(values[0]<=50&&values[1]<=100&&values[2]<=65535)return {cmd:"SET "+values.join(" "),kind:"SET",values}}throw new Error("仅支持 GET、HELP 或 SET T H RAW；三个阈值必须为范围内的整数。")}
+async function sendCommand(text){let info;try{info=commandInfo(text)}catch(error){notice(error.message,true);return}if(state.pending){notice("请等待上一条阈值命令确认或超时。",true);return}if(!state.connected&&!state.demo){notice("请先连接串口。",true);return}
+if(info.kind!=="HELP"){const timer=setTimeout(()=>{clearPending("3 秒内未收到 ST 确认。请检查连接并重新读取；参数可能已应用。");notice("ST 未确认命令。可点击“读取当前阈值”核实。",true)},3000);state.pending={...info,timer};$("pending").textContent="等待 ST 回复："+info.cmd;controls()}
+if(state.demo){log("TX","[演示] "+info.cmd);if(info.kind==="SET")demoLimits=info.values;if(info.kind==="HELP")log("RX","[演示] GET | SET T H RAW | HELP");else{const l=demoLimits;const reply=(info.kind==="SET"?"OK,":"")+"LIMIT,T="+l[0]+",H="+l[1]+",RAW="+l[2]+" (strict >, at least 2; RAM only)";log("RX","[演示] "+reply);parseLine(reply)}return}
+const port=state.port;const operation=state.queue.then(async()=>{if(!state.connected||state.closing||state.port!==port||!port.writable)throw new Error("串口不可写");const writer=port.writable.getWriter();try{await writer.write(new TextEncoder().encode(info.cmd+"\r\n"));log("TX",info.cmd)}finally{writer.releaseLock()}});state.queue=operation.catch(()=>{});try{await operation}catch(error){clearPending("发送失败，请重新连接后核实阈值。");notice("发送失败："+error.message,true);log("SYS","发送失败："+error.message)}}
+function freshness(){const age=state.lastSample?(Date.now()-state.lastSample)/1000:Infinity;const active=state.connected||state.demo;const fresh=active&&age<5;$("fresh").className="pill"+(fresh?" on":state.history.length?" warn":"");$("fresh").textContent=fresh?(state.demo?"演示数据":"数据更新中"):state.history.length?(active?"数据已过期":"历史数据 · 已断开"):"等待数据";renderAlarmDetails()}
+const plot={paused:false,frozen:[],origin:null,hover:null};
+function chartModel(data,width){
+ const mode=$("xAxis").value||"clock",getX=s=>mode==="index"?s.index:s.time;
+ const first=data.length?getX(data[0]):0,last=data.length?getX(data[data.length-1]):first;
+ const xMin=first,xMax=last>first?last:first+(mode==="index"?4:4000);
+ const count=Math.max(1,Math.min(6,Math.floor((width-135)/105))),ticks=[];
+ for(let i=0;i<=count;i++){const value=xMin+(xMax-xMin)*i/count;let label;
+  if(!data.length)label=mode==="clock"?"—":(mode==="index"?value:value/1000).toFixed(0);
+  else if(mode==="index")label=value.toFixed(value%1===0?0:1);
+  else if(mode==="elapsed")label=((value-(plot.origin??data[0].time))/1000).toFixed(1);
+  else {const date=new Date(value);label=date.toLocaleTimeString("zh-CN",{hour12:false});if(xMax-xMin<5000)label+="."+String(date.getMilliseconds()).padStart(3,"0")}
+  ticks.push({fraction:i/count,label});
+ }
+ const shared={min:0,max:100,color:"#b0b6c0",label:"温度 ℃ / 湿度 %RH"};
+ const axes={t:shared,h:shared,r:{min:0,max:65535,color:"#69a9ff",label:"raw 原始值"}};
+ if($("yAxis").value==="auto"&&data.length){
+  for(const keys of [["t","h"],["r"]]){
+   const key=keys[0],values=data.flatMap(s=>keys.map(k=>s[k])),min=Math.min(...values),max=Math.max(...values);
+   const padding=Math.max(key==="r"?100:1,(max-min)*.12),span=max-min+padding*2;
+   const magnitude=10**Math.floor(Math.log10(span/4)),step=[1,2,5,10].map(v=>v*magnitude).find(v=>v>=span/4);
+   axes[key].min=Math.max(0,Math.floor((min-padding)/step)*step);
+   axes[key].max=Math.min(key==="r"?65535:100,Math.ceil((max+padding)/step)*step);
+  }
+ }
+ const series=[["t","#ff6b6b","channelT"],["h","#ffd166","channelH"],["r","#69a9ff","channelR"]].filter(s=>$(s[2]).checked);
+ return {mode,getX,xMin,xMax,ticks,series,axes};
+}
+function chartGeometry(width,height){return {left:54,top:36,bottom:height-56,right:Math.max(100,width-80)}}
+function nearestSample(data,model,geometry,mouse){
+ if(!mouse||!data.length||mouse.x<geometry.left||mouse.x>geometry.right||mouse.y<geometry.top||mouse.y>geometry.bottom)return null;
+ const xOf=s=>geometry.left+(geometry.right-geometry.left)*(model.getX(s)-model.xMin)/(model.xMax-model.xMin);
+ return data.reduce((a,b)=>Math.abs(xOf(a)-mouse.x)<=Math.abs(xOf(b)-mouse.x)?a:b);
+}
+function showSampleTooltip(sample,width,height){
+ const tip=$("chartTooltip");
+ if(!sample){tip.hidden=true;return}
+ $("tipTime").textContent=new Date(sample.time).toLocaleTimeString("zh-CN",{hour12:false})+" · 样本 #"+sample.index;
+ $("tipT").textContent="温度  "+sample.t.toFixed(1)+" ℃";
+ $("tipH").textContent="湿度  "+sample.h.toFixed(1)+" %RH";
+ $("tipR").textContent="光敏 raw  "+sample.r;
+ tip.hidden=false;
+ const tw=tip.offsetWidth||228,th=tip.offsetHeight||125;
+ const preferred=plot.hover.x>width/2?plot.hover.x-tw-16:plot.hover.x+16;
+ tip.style.left=Math.max(6,Math.min(width-tw-6,preferred))+"px";
+ tip.style.top=Math.max(6,Math.min(height-th-6,plot.hover.y+14))+"px";
+}
+function drawChart(){
+ const canvas=$("chart"),ratio=window.devicePixelRatio||1,w=canvas.clientWidth,h=canvas.clientHeight||340;
+ canvas.width=Math.max(1,Math.round(w*ratio));canvas.height=Math.round(h*ratio);
+ const ctx=canvas.getContext("2d");ctx.scale(ratio,ratio);
+ const g=chartGeometry(w,h),{left,top,bottom,right}=g;
+ const data=(plot.paused?plot.frozen:state.history).slice(-Number($("plotCount").value||120)),m=chartModel(data,w);
+ const xOf=s=>left+(right-left)*(m.getX(s)-m.xMin)/(m.xMax-m.xMin);
+ const yOf=(value,key)=>bottom-(bottom-top)*(value-m.axes[key].min)/(m.axes[key].max-m.axes[key].min);
+ ctx.font='11px Consolas,"Microsoft YaHei",monospace';ctx.lineWidth=1;
+ for(let i=0;i<=4;i++){
+  const fraction=i/4,y=bottom-(bottom-top)*fraction;ctx.strokeStyle="#393e45";
+  ctx.beginPath();ctx.moveTo(left,y);ctx.lineTo(right,y);ctx.stroke();
+  for(const key of ["t","r"]){const axis=m.axes[key],value=axis.min+(axis.max-axis.min)*fraction;
+   ctx.fillStyle=axis.color;ctx.textAlign=key==="t"?"right":"left";
+   ctx.fillText(key==="r"?Math.round(value).toString():Number(value.toFixed(2)).toString(),key==="t"?left-8:right+8,y+4);
+  }
+ }
+ for(const [key,x] of [["t",left],["r",right]]){
+  ctx.strokeStyle=m.axes[key].color;ctx.beginPath();ctx.moveTo(x,top);ctx.lineTo(x,bottom);ctx.stroke();
+  for(let i=0;i<=4;i++){const y=bottom-(bottom-top)*i/4;ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x+(key==="t"?-4:4),y);ctx.stroke()}
+  ctx.fillStyle=m.axes[key].color;ctx.textAlign="left";ctx.fillText(m.axes[key].label,key==="t"?left:x+2,18);
+ }
+ ctx.fillStyle="#b0b6c0";ctx.textAlign="center";
+ for(const tick of m.ticks){const x=left+(right-left)*tick.fraction;ctx.strokeStyle="#343940";ctx.beginPath();ctx.moveTo(x,top);ctx.lineTo(x,bottom+5);ctx.stroke();ctx.fillText(tick.label,x,bottom+21)}
+ ctx.strokeStyle="#89919c";ctx.beginPath();ctx.moveTo(left,bottom);ctx.lineTo(right,bottom);ctx.stroke();
+ ctx.fillText(m.mode==="clock"?"接收时刻 / HH:MM:SS":m.mode==="elapsed"?"经过时间 / s":"接收样本序号（连续计数）",(left+right)/2,h-10);
+ if(!data.length){ctx.fillText("等待串口数据",(left+right)/2,(top+bottom)/2)}
+ ctx.save();ctx.beginPath();ctx.rect(left,top,right-left,bottom-top);ctx.clip();
+ for(const [key,color] of m.series){ctx.beginPath();ctx.strokeStyle=color;ctx.lineWidth=1.6;data.forEach((s,i)=>{const x=xOf(s),y=yOf(s[key],key);if(i)ctx.lineTo(x,y);else ctx.moveTo(x,y)});ctx.stroke();
+  if(data.length===1){ctx.fillStyle=color;ctx.beginPath();ctx.arc(xOf(data[0]),yOf(data[0][key],key),3,0,Math.PI*2);ctx.fill()}
+ }
+ const selected=nearestSample(data,m,g,plot.hover);
+ if(selected){const x=xOf(selected);ctx.strokeStyle="#d0d4dc";ctx.lineWidth=1;ctx.setLineDash([4,4]);ctx.beginPath();ctx.moveTo(x,top);ctx.lineTo(x,bottom);ctx.stroke();ctx.setLineDash([]);
+  for(const [key,color] of m.series){ctx.beginPath();ctx.fillStyle=color;ctx.strokeStyle="#202124";ctx.lineWidth=2;ctx.arc(x,yOf(selected[key],key),4,0,Math.PI*2);ctx.fill();ctx.stroke()}
+ }
+ ctx.restore();showSampleTooltip(selected,w,h);
+ $("cursorInfo").textContent=selected?new Date(selected.time).toLocaleTimeString()+" · #"+selected.index+" · T "+selected.t.toFixed(1)+" ℃ · RH "+selected.h.toFixed(1)+" % · raw "+selected.r:plot.paused?"波形已暂停；可移动鼠标查看冻结样本，串口接收仍在继续。":"鼠标移入绘图区查看最近采样点 · 温湿度共用左轴 / raw 独立右轴 · raw 为原始值";
+}
+function resetPlot(){plot.paused=false;plot.frozen=[];plot.origin=null;plot.hover=null;$("chartTooltip").hidden=true;$("freezePlot").textContent="暂停波形"}
+$("freezePlot").onclick=()=>{plot.paused=!plot.paused;plot.frozen=plot.paused?state.history.slice():[];$("freezePlot").textContent=plot.paused?"继续波形":"暂停波形";drawChart()};
+for(const id of ["xAxis","yAxis","plotCount","channelT","channelH","channelR"])$(id).onchange=()=>{plot.hover=null;drawChart()};
+function inspectPointer(event){
+ const canvas=$("chart"),rect=canvas.getBoundingClientRect();
+ const innerWidth=rect.width-2*canvas.clientLeft,innerHeight=rect.height-2*canvas.clientTop;
+ plot.hover={x:(event.clientX-rect.left-canvas.clientLeft)*canvas.clientWidth/innerWidth,y:(event.clientY-rect.top-canvas.clientTop)*canvas.clientHeight/innerHeight};drawChart();
+}
+$("chart").onpointermove=inspectPointer;
+$("chart").onpointerenter=inspectPointer;
+$("chart").onpointerleave=()=>{plot.hover=null;drawChart()};
+
+let demoLimits=[25,60,30000],demoSeq=0;
+function demoTick(){const n=demoSeq++,t=+(26+Math.sin(n/5)*3).toFixed(1),h=+(59+Math.sin(n/7)*8).toFixed(1),r=Math.round(31000+Math.sin(n/4)*7000),over=Number(t>demoLimits[0])+Number(h>demoLimits[1])+Number(r>demoLimits[2]);const line="ENV,seq="+n%256+",T="+t.toFixed(1)+"C,H="+h.toFixed(1)+"%,raw="+r+",over="+over+",LED="+(over>=2?"ON":"OFF");log("RX","[演示] "+line);parseLine(line)}
+$("demo").onclick=()=>{state.demo=!state.demo;if(state.demo){resetData();demoLimits=[25,60,30000];demoSeq=0;parseLine("LIMIT,T=25,H=60,RAW=30000");demoTick();state.demoTimer=setInterval(demoTick,1500);notice("正在演示模拟环境数据。发送阈值只会影响演示，不会操作串口。")}else{clearInterval(state.demoTimer);resetData();notice("演示已结束。点击连接串口，选择 ST 的虚拟串口。")}controls()};
+$("connect").onclick=connect;$("disconnect").onclick=()=>disconnect();$("get").onclick=()=>sendCommand("GET");$("help").onclick=()=>sendCommand("HELP");
+$("thresholdForm").onsubmit=event=>{event.preventDefault();if($("thresholdForm").reportValidity())void sendCommand("SET "+["limitT","limitH","limitR"].map(id=>$(id).value).join(" "))};
+$("commandForm").onsubmit=event=>{event.preventDefault();void sendCommand($("command").value)};
+$("filter").onchange=renderLog;$("autoscroll").onchange=renderLog;$("clear").onclick=()=>{state.logs=[];renderLog()};
+$("pause").onclick=()=>{state.paused=!state.paused;$("pause").textContent=state.paused?"继续显示":"暂停显示";if(!state.paused)renderLog()};
+$("export").onclick=()=>{const blob=new Blob(["\uFEFF"+state.logs.map(x=>x.time+" ["+x.kind+"] "+x.text).join("\r\n")],{type:"text/plain;charset=utf-8"}),url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download="ST-serial-"+new Date().toISOString().replace(/[:.]/g,"-")+".txt";a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)};
+document.querySelector("header").append($("demoBanner"));window.addEventListener("resize",drawChart);window.addEventListener("beforeunload",event=>{if(state.connected){event.preventDefault();event.returnValue=""}});
+if(navigator.serial)navigator.serial.addEventListener("disconnect",event=>{if(event.target===state.port||event.port===state.port)void disconnect("串口设备已拔出。")});
+setInterval(freshness,1000);controls();drawChart();
+if(!navigator.serial||!window.isSecureContext)notice("当前环境不能访问串口。请使用桌面 Chrome / Edge，通过启动脚本打开 http://127.0.0.1:8765/ 。演示模式仍可使用。",true);
+</script></body></html>
